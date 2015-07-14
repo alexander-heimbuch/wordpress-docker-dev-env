@@ -6,15 +6,19 @@
 
 1. Install [Node.js](https://nodejs.org/)
 
-2. Clone it: ``git clone https://github.com/zusatzstoff/klaus.git``  
+2. Install [Composer](https://getcomposer.org/download/)
 
-3. Run ``npm install``
+3. Clone it: ``git clone https://github.com/zusatzstoff/klaus.git``  
 
-4. Install [boot2docker](https://docs.docker.com/installation/)
+4. Run ``npm install``
 
-5. Run ``gulp``
+5. Run ``composer install``
 
-6. Access the instance on ``dockerHost:8080``
+6. Install [boot2docker](https://docs.docker.com/installation/)
+
+7. Run ``gulp``
+
+8. Access the instance on ``dockerHost:8080``
 
 ### Docker Host
 

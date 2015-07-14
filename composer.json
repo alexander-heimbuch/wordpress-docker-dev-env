@@ -1,0 +1,17 @@
+{
+  "name": "zusatzstoff/klaus",
+  "description": "klaus plugin",
+  "license": "MIT",
+  "require": {
+    "getherbert/framework": "~0.9"
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "Klaus\\": "app/"
+    }
+  }
+}
