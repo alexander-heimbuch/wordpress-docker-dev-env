@@ -18,7 +18,7 @@ var gulp = require('gulp'),
     path = require('path');
 
 // Path definition
-var buildPath = path.resolve('./build'),
+var buildPath = path.resolve('./wp-content'),
     sourcePath = 'src';
 
 /**
@@ -176,7 +176,7 @@ gulp.task('docker:start', shell.task([
 
     'docker exec -i klaus-mysql ' +
        'mysql -uroot -pklaus klaus-wordpress < ' + path.resolve('.', 'persist.sql')
-], {ignoreErrors: true, quiet: true}));
+], {ignoreErrors: false, quiet: false}));
 
 gulp.task('docker:stop', shell.task([
     'docker stop klaus-wordpress',
@@ -193,14 +193,18 @@ gulp.task('docker', function (cb) {
     });
 });
 
-gulp.task('save', shell.task(
+/**
+ * Persisting
+ */
+gulp.task('save', shell.task([
     'docker exec -i klaus-mysql mysqldump -u root -pklaus klaus-wordpress > ' + path.resolve('.', 'persist.sql') + ' &'
-));
+], {ignoreErrors: true, quiet: true}));
 
 /**
  * Build task including:
  * 		* clean
  * 		* html
+ * 		* php
  * 		* scripts
  * 		* styles
  */
