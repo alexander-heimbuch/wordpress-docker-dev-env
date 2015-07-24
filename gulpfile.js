@@ -19,7 +19,6 @@ var gulp = require('gulp'),
 
 // Path definition
 var buildPath = path.resolve('./build'),
-    vendorPath = path.resolve('./vendor'),
     sourcePath = 'src';
 
 /**
@@ -143,8 +142,7 @@ gulp.task('styles', ['clean-styles'], function () {
  * 		* Copies vendor files to buildPath
  */
 gulp.task('vendor', function () {
-    gulp.src(vendorPath + '/**/*')
-        .pipe(gulp.dest(path.resolve(buildPath, 'vendor')));
+
 });
 
 /**
@@ -170,14 +168,14 @@ gulp.task('docker:start', shell.task([
         '-e WORDPRESS_DB_PASSWORD=klaus ' +
         '-e WORDPRESS_DB_NAME=klaus-wordpress ' +
         '--link klaus-mysql:mysql ' +
-        '-v ' + buildPath + ':/var/www/html/wp-content/plugins/klaus ' +
+        '-v ' + buildPath + ':/var/www/html/wp-content ' +
         '-p 8080:80 ' +
         '-d wordpress:latest',
 
     'sleep 20',
 
     'docker exec -i klaus-mysql ' +
-        'mysql -uroot -pklaus klaus-wordpress < ' + path.resolve('.', 'demo-data', 'dump.sql')
+       'mysql -uroot -pklaus klaus-wordpress < ' + path.resolve('.', 'persist.sql')
 ], {ignoreErrors: true, quiet: true}));
 
 gulp.task('docker:stop', shell.task([
@@ -195,16 +193,19 @@ gulp.task('docker', function (cb) {
     });
 });
 
+gulp.task('save', shell.task(
+    'docker exec -i klaus-mysql mysqldump -u root -pklaus klaus-wordpress > ' + path.resolve('.', 'persist.sql') + ' &'
+));
+
 /**
  * Build task including:
  * 		* clean
- * 		* vendor
  * 		* html
  * 		* scripts
  * 		* styles
  */
 gulp.task('build', function (cb) {
-    runSequence('clean', ['vendor', 'html', 'php', 'lint', 'scripts', 'styles'], cb);
+    runSequence('clean', ['html', 'php', 'lint', 'scripts', 'styles'], cb);
 });
 
 /**
