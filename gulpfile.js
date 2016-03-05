@@ -1,8 +1,10 @@
 /*eslint-env node*/
-'use strict';
+var port = 8080,
+    databasePrefix = '';
 
 // Gulp plugins
 var gulp = require('gulp'),
+    gutil = require('gulp-util'),
     connect = require('gulp-connect'),
     sourcemaps = require('gulp-sourcemaps'),
     to5 = require('gulp-6to5'),
@@ -12,13 +14,13 @@ var gulp = require('gulp'),
     eslint = require('gulp-eslint'),
     shell = require('gulp-shell'),
 
-    colors = require('colors'),
     fs = require('fs-extra'),
     runSequence = require('run-sequence'),
     path = require('path');
 
 // Path definition
-var buildPath = path.resolve('./wp-content'),
+var project = path.dirname(__filename).split(path.sep).pop() || 'klaus',
+    buildPath = path.resolve('./wp-content'),
     sourcePath = 'src';
 
 /**
@@ -28,15 +30,15 @@ gulp.task('connect', function () {
     connect.server({
         livereload: true,
         root: buildPath,
-        port: 8080
+        port: port + 1
     });
 });
 
 /**
  * File watch and trigger build of:
- * 		* HTML
- * 		* JavaScript
- * 		* LESS
+ *      * HTML
+ *      * JavaScript
+ *      * LESS
  */
 gulp.task('watch', function () {
     gulp.watch([sourcePath + '/**/*.html'], ['html']);
@@ -66,7 +68,7 @@ gulp.task('clean-html', function () {
 
 /**
  * HTML build task:
- * 		* Copies HTML files to buildPath
+ *      * Copies HTML files to buildPath
  */
 gulp.task('html', ['clean-html'], function () {
     return gulp.src(sourcePath + '/**/*.html')
@@ -84,7 +86,7 @@ gulp.task('clean-php', function () {
 
 /**
  * HTML build task:
- * 		* Copies HTML files to buildPath
+ *      * Copies HTML files to buildPath
  */
 gulp.task('php', ['clean-php'], function () {
     return gulp.src(sourcePath + '/**/*.php')
@@ -102,9 +104,9 @@ gulp.task('clean-scripts', function () {
 
 /**
  * JavaScript build task:
- * 		* Converts ecmascript 6 to 5
- * 		* Creates sourcemaps
- * 		* Copies compiled files to buildPath
+ *      * Converts ecmascript 6 to 5
+ *      * Creates sourcemaps
+ *      * Copies compiled files to buildPath
  */
 gulp.task('scripts', ['clean-scripts'], function () {
     return gulp.src(sourcePath + '/**/*.js')
@@ -125,9 +127,9 @@ gulp.task('clean-styles', function () {
 
 /**
  * LESS build task:
- * 		* Converts LESS to CSS
- * 		* Minifies CSS
- * 		* Copies compiled files to buildPath
+ *      * Converts LESS to CSS
+ *      * Minifies CSS
+ *      * Copies compiled files to buildPath
  */
 gulp.task('styles', ['clean-styles'], function () {
     return gulp.src(sourcePath + '/**/*.less')
@@ -139,7 +141,7 @@ gulp.task('styles', ['clean-styles'], function () {
 
 /**
  * Vendor build task:
- * 		* Copies vendor files to buildPath
+ *      * Copies vendor files to buildPath
  */
 gulp.task('vendor', function () {
 
@@ -157,38 +159,48 @@ gulp.task('lint', function () {
 /**
  * Dev Environment
  */
-gulp.task('docker:start', shell.task([
-    'docker run --name klaus-mysql ' +
-        '-e MYSQL_ROOT_PASSWORD=klaus ' +
-        '-e MYSQL_DATABASE=klaus ' +
+gulp.task('docker:init', shell.task([
+    'docker run --name ' + project + '-mysql ' +
+        '-e MYSQL_ROOT_PASSWORD=' + project + ' ' +
+        '-e MYSQL_DATABASE=' + project + '-wordpress ' +
+        '-v ' + path.resolve('.', 'database') + ':/var/lib/mysql' +
         '-P ' +
         '-d mysql:latest',
 
-    'docker run --name klaus-wordpress ' +
-        '-e WORDPRESS_DB_PASSWORD=klaus ' +
-        '-e WORDPRESS_DB_NAME=klaus-wordpress ' +
-        '--link klaus-mysql:mysql ' +
+    'docker run --name ' + project + '-wordpress ' +
+        '-e WORDPRESS_DB_PASSWORD=' + project + ' ' +
+        '-e WORDPRESS_DB_NAME=' + project + '-wordpress ' +
+        '-e WORDPRESS_TABLE_PREFIX=' + databasePrefix + ' ' +
+        '--link ' + project + '-mysql:mysql ' +
         '-v ' + buildPath + ':/var/www/html/wp-content ' +
-        '-p 8080:80 ' +
+        '-p ' + port + ':80 ' +
         '-d wordpress:latest',
 
     'sleep 20',
 
-    'docker exec -i klaus-mysql ' +
-       'mysql -uroot -pklaus klaus-wordpress < ' + path.resolve('.', 'persist.sql')
+    'docker exec -i ' + project + '-mysql ' +
+       'mysql -uroot -p' + project + ' ' + project + '-wordpress < ' + path.resolve('.', 'persist.sql')
 ], {ignoreErrors: false, quiet: false}));
 
 gulp.task('docker:stop', shell.task([
-    'docker stop klaus-wordpress',
-    'docker rm klaus-wordpress',
-
-    'docker stop klaus-mysql',
-    'docker rm klaus-mysql'
+    'docker stop ' + project + '-wordpress',
+    'docker stop ' + project + '-mysql'
 ], {ignoreErrors: true, quiet: true}));
 
+gulp.task('docker:start', shell.task([
+    'docker start ' + project + '-wordpress',
+    'docker start ' + project + '-mysql'
+], {ignoreErrors: true, quiet: true}));
+
+gulp.task('docker:remove', ['docker:stop'], shell.task([
+    'docker rm ' + project + '-wordpress',
+    'docker rm ' + project + '-mysql'
+], {ignoreErrors: true, quiet: true}));
+
+
 gulp.task('docker', function (cb) {
-    runSequence('docker:stop', 'docker:start', function () {
-        console.log(colors.green('wordpress listening on http://docker:8080'));
+    runSequence('docker:start', function () {
+        gutil.log(gutil.colors.green('wordpress listening on http://docker:' + port));
         cb();
     });
 });
@@ -196,17 +208,17 @@ gulp.task('docker', function (cb) {
 /**
  * Persisting
  */
-gulp.task('save', shell.task([
-    'docker exec -i klaus-mysql mysqldump -u root -pklaus klaus-wordpress > ' + path.resolve('.', 'persist.sql') + ' &'
+gulp.task('database:save', shell.task([
+    'docker exec -i ' + project + '-mysql mysqldump -u root -p' + project + ' ' + project + '-wordpress > ' + path.resolve('.', 'persist.sql') + ' &'
 ], {ignoreErrors: true, quiet: true}));
 
 /**
  * Build task including:
- * 		* clean
- * 		* html
- * 		* php
- * 		* scripts
- * 		* styles
+ *      * clean
+ *      * html
+ *      * php
+ *      * scripts
+ *      * styles
  */
 gulp.task('build', function (cb) {
     runSequence('clean', ['html', 'php', 'lint', 'scripts', 'styles'], cb);
@@ -214,8 +226,8 @@ gulp.task('build', function (cb) {
 
 /**
  * Default task including:
- * 		* build
- * 		* connect
- * 		* watch
+ *      * build
+ *      * connect
+ *      * watch
  */
 gulp.task('default', ['build', 'docker', 'watch']);
