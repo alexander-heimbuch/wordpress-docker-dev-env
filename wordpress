@@ -4,6 +4,7 @@ shift
 
 # load colors functions
 export colors="./.resources/colors"
+export user_id="${UID}"
 
 # read the config
 source ./wordpress.config
