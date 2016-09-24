@@ -1,2 +1,7 @@
-wp-content/
-vendor/
+# ignore themes
+content/themes/twentyfourteen
+content/themes/twentyfifteen
+content/themes/twentysixteen
+
+# ignore plugins
+content/plugins/akismet
