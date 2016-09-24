@@ -4,7 +4,6 @@ services:
   wordpress:
     container_name: "${project}_wordpress"
     image: wordpress
-    user: $user_id
     ports:
       - 8080:80
     volumes:
